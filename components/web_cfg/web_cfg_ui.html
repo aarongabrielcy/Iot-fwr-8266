@@ -1,0 +1,519 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Dev Setup</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:18px;max-width:auto}
+    .muted{color:#666;font-size:13px}
+    .ok{color:#0a0}
+    .err{color:#a00}
+
+    .topbar{
+      position:sticky; top:0; background:#fff; z-index:10;
+      padding:10px 0; border-bottom:1px solid #eee; margin-bottom:12px;
+    }
+    #msg{margin-top:8px; padding:8px 10px; border-radius:10px; background:#f7f7f7}
+
+    .grid{display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start}
+    .col{flex:1; min-width:330px}
+    .card{border:1px solid #ddd; border-radius:14px; padding:12px; flex:1 1 320px; min-width:280px;}
+    .row{ margin:10px 0; width:100%; }
+    .horizontal_control{display: flex; gap: 10px}
+    label{display:block;margin-bottom:6px;font-weight:600}
+    input,select,button{
+      width:100%;
+      max-width:100%;
+      display:block;
+      padding:10px;
+      font-size:16px;
+    }
+    button{cursor:pointer}
+    h3{margin:0 0 8px 0}
+    .hint{font-size:12px;color:#666;margin-top:6px}
+    *{ box-sizing:border-box; }  
+  </style>
+</head>
+<body>
+
+  <div class="topbar grid">
+    <div class="title col">
+      <div class="row">
+        <img src="/iot_logo.svg" alt="IoT" style="height:32px;width:auto">
+      </div>
+      <div class="row">
+        <h2>DEVICE SETUP</h2>
+      </div>
+    </div>
+    <div class="muted">Configura WiFi y MQTT. Guarda y reinicia. Si estás en STA puedes entrar por IP o por mDNS.</div>
+    <div id="msg" class="muted">Listo.</div>
+  </div>
+
+  <div class="grid">
+    <!-- WiFi -->
+    <div class="col card">
+      <h3>WiFi</h3>
+
+      <div class="row">
+        <button id="btnScan">Escanear redes</button>
+        <div class="hint">Si no salen redes, prueba abrir <code>/scan</code> directo o refrescar.</div>
+      </div>
+
+      <div class="row">
+        <label>Redes cercanas</label>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <select id="netList" style="flex: 1; height: 44px;">
+            <option value="">-- Presiona Escanear --</option>
+          </select>
+        
+          <svg id="wifi-svg-dynamic" width="32" height="32" viewBox="0 0 24 24" style="transition: 0.3s; fill: #ccc;">
+            <rect id="rect1" x="2"  y="14" width="4" height="6" rx="1" />
+            <rect id="rect2" x="7"  y="10" width="4" height="10" rx="1" opacity="0.2" />
+            <rect id="rect3" x="12" y="6"  width="4" height="14" rx="1" opacity="0.2" />
+            <rect id="rect4" x="17" y="2"  width="4" height="18" rx="1" opacity="0.2" />
+          </svg>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>SSID</label>
+        <input id="ssid" maxlength="32" placeholder="Nombre de la red"/>
+      </div>
+
+      <div class="row">
+        <label>Password</label>
+        <input id="pass" type="password" maxlength="64" placeholder="Password (vacío si abierta)"/>
+      </div>
+
+      <div class="row">
+        <div class="muted" id="currentWifi"></div>
+      </div>
+    </div>
+
+    <!-- MQTT -->
+    <div class="col card">
+      <h3>MQTT</h3>
+
+      <div class="row">
+        <label>Host</label>
+        <input id="mqtt_host" maxlength="63" placeholder="ej: 201.122.135.23"/>
+      </div>
+
+      <div class="row">
+        <label>Port</label>
+        <input id="mqtt_port" inputmode="numeric" placeholder="1883"/>
+      </div>
+
+      <div class="row">
+        <label>User</label>
+        <input id="mqtt_user" maxlength="32" placeholder="usuario"/>
+      </div>
+
+      <div class="row">
+        <label>Password</label>
+        <input id="mqtt_pass" type="password" maxlength="64" placeholder="password"/>
+      </div>
+
+      <div class="row">
+        <button id="btnSave">Guardar y reiniciar</button>
+      </div>
+
+      <div class="row">
+        <div class="muted" id="currentMqtt"></div>
+      </div>
+    </div>
+    <!-- DEVICE INFORMATION-->
+    <div class="col card">
+      <h3>Device Information</h3>
+
+      <div class="row">
+        <label>Device ID</label>
+        <input id="device_mac" maxlength="63" placeholder="M.A.C." readonly/>
+      </div>
+
+      <div class="row">
+        <label>Report Interval</label>
+        <div class="horizontal_control">
+          <input type="number" id="telemetry_interval" required>
+          <button id="btnSetTimer">Set</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>Firmware Version</label>
+        <div class="horizontal_control">
+          <input id="firmware_version" placeholder="1.0.0" readonly/>
+          <button id="btnUpdateFw">Update</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Select Sensor-->
+    <div class="col card">
+      <h3>Sensors</h3>
+      <div class="row">
+        <label>RS485 Sensor</label>
+        <select id="sensorRS485List" title="Redes cercanas">
+          <option value="">Select Sensor</option>
+        </select>
+      </div>
+      <div class="row">
+        <button id="btnSelectRS485Sensor">Select</button>
+      </div>
+       <div class="row">
+          <label>I2C Sensor</label>
+       </div>
+       <select id="sensorI2CList" title="Redes cercanas">
+          <option value="">Select Sensor</option>
+        </select>
+        <div class="row">
+          <button id="btnSelectI2CSensor">Select</button>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- RELE -->
+    <div class="col card">
+      <h3 id="outputState">Output</h3>
+      <div class="row">
+        <button id="btnEnableOutput">Enable</button>
+      </div>
+      <div class="row">
+        <button id="btnDisableOutput">Disable</button>
+      </div>
+    </div>
+  
+  </div>
+
+<script>
+
+let networkPowers = {};
+const msg = (t, cls='muted')=>{
+  const el=document.getElementById('msg');
+  el.className=cls; el.textContent=t;
+};
+
+async function loadCfg(){
+  try{
+    const r = await fetch('/cfg', {cache:'no-store'});
+    const j = await r.json();
+    if(!j.ok){
+      msg('No se pudo leer /cfg: '+(j.error||'unknown'), 'err');
+      return;
+    }
+
+    // Prellenar
+    document.getElementById('ssid').value = j.wifi_ssid || '';
+    document.getElementById('mqtt_host').value = j.mqtt_host || '';
+    document.getElementById('mqtt_port').value = (j.mqtt_port && j.mqtt_port>0) ? String(j.mqtt_port) : '';
+    document.getElementById('mqtt_user').value = j.mqtt_user || '';
+    document.getElementById('device_mac').value = j.device_id || '';
+    document.getElementById('telemetry_interval').value = j.telemetry_interval || '';
+    document.getElementById('firmware_version').value = j.cfg_version || '';
+
+
+
+    // Labels actuales
+    const ip = j.ip_dhcp || '(sin IP)';
+    document.getElementById('currentWifi').textContent =
+      'Actual: SSID='+(j.wifi_ssid||'(vacío)')+' | IP='+ip+' | device_id='+j.device_id;
+
+    document.getElementById('currentMqtt').textContent =
+      'Actual: '+(j.mqtt_host||'(host vacío)')+':' + (j.mqtt_port||0) + ' | user='+(j.mqtt_user||'(vacío)');
+
+  }catch(e){
+    msg('Error leyendo /cfg: '+e, 'err');
+  }
+
+  try {
+      const sel = document.getElementById('sensorRS485List');
+      sel.innerHTML = "<option value=''> Disable </option>";
+      const fragment = document.createDocumentFragment();
+      const sensores_485 = Object.keys(j.sensors)
+      console.log(sensores_485);
+      /*if() {
+        // Ordenar por potencia antes de mostrar
+        j.networks.sort((a, b) => b.rssi - a.rssi);
+
+        j.networks.forEach(n => {
+          const o = document.createElement('option');
+          o.value = n.ssid;
+          o.textContent = `${n.ssid} (${n.rssi} dBm)`;
+          sel.appendChild(o);
+
+          // Guardamos el RSSI asociado a este SSID
+          networkPowers[n.ssid] = n.rssi;
+        });
+      }*/
+    } catch(e) {
+      msg('Error en obtener sensores: ' + e, 'err');
+    }
+}
+
+/*document.getElementById('btnScan').onclick = async ()=>{
+  msg('Escaneando...', 'muted');
+  try {
+    const r = await fetch('/scan', {cache:'no-store'});
+    const j = await r.json();
+
+    const sel = document.getElementById('netList');
+    sel.innerHTML='';
+
+    if(j.error){
+      sel.innerHTML = "<option value=''>-- scan error --</option>";
+      msg('Scan error: '+j.error, 'err');
+      return;
+    }
+
+    if(!j.networks || j.networks.length===0){
+      sel.innerHTML="<option value=''>-- no se encontraron redes --</option>";
+      msg('No se encontraron redes', 'err');
+      return;
+    }
+
+    sel.innerHTML = "<option value=''>-- seleccionar --</option>";
+    j.networks.forEach(n=>{
+      const o=document.createElement('option');
+      o.value=n.ssid;
+      o.textContent = n.ssid + " (RSSI " + n.rssi + " dBm)";
+      sel.appendChild(o);
+    });
+
+    msg('Selecciona una red o escribe SSID manualmente', 'ok');
+  } catch(e){
+    msg('Error en scan: '+e, 'err');
+  }
+};*/
+document.getElementById('btnScan').onclick = async () => {
+  msg('Escaneando...', 'muted');
+  try {
+    const r = await fetch('/scan', {cache:'no-store'});
+    const j = await r.json();
+    const sel = document.getElementById('netList');
+    
+    sel.innerHTML = "<option value=''>-- Seleccionar red --</option>";
+    networkPowers = {}; // Limpiamos caché anterior
+
+    if(j.networks && j.networks.length > 0) {
+      // Ordenar por potencia antes de mostrar
+      j.networks.sort((a, b) => b.rssi - a.rssi);
+
+      j.networks.forEach(n => {
+        const o = document.createElement('option');
+        o.value = n.ssid;
+        o.textContent = `${n.ssid} (${n.rssi} dBm)`;
+        sel.appendChild(o);
+        
+        // Guardamos el RSSI asociado a este SSID
+        networkPowers[n.ssid] = n.rssi;
+      });
+      msg('Scan listo', 'ok');
+    }
+  } catch(e) {
+    msg('Error en scan: ' + e, 'err');
+  }
+};
+
+function updateLiveIcon(rssi) {
+  const svg = document.getElementById('wifi-svg-dynamic');
+  const bars = [
+    document.getElementById('rect1'),
+    document.getElementById('rect2'),
+    document.getElementById('rect3'),
+    document.getElementById('rect4')
+  ];
+
+  // Resetear todo a "apagado"
+  bars.forEach(b => b.setAttribute('opacity', '0.2'));
+  svg.style.fill = "#888"; // Color neutro
+
+  if (rssi === undefined) return;
+
+  // Lógica de niveles
+  let level = 1;
+  if (rssi >= -55) { level = 4; svg.style.fill = "#2ecc71"; } // Verde
+  else if (rssi >= -70) { level = 3; svg.style.fill = "#f1c40f"; } // Amarillo
+  else if (rssi >= -85) { level = 2; svg.style.fill = "#e67e22"; } // Naranja
+  else { level = 1; svg.style.fill = "#e74c3c"; } // Rojo
+
+  // Encender las barras correspondientes
+  for(let i=0; i<level; i++) bars[i].setAttribute('opacity', '1');
+}
+
+
+document.getElementById('btnSetTimer').onclick = async ()=>{
+  const time = document.getElementById('telemetry_interval').value;
+  if(time< 10 || time>600){
+    msg('Telemetry Intereval Off Limits', 'err');
+    return;
+  }
+  msg('Guardando...', 'muted');
+  console.log("intervalo: ", time);
+  try{
+    const body =
+    'telemetry_interval='+encodeURIComponent(time);
+    const r = await fetch('/set_timer', {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body
+    });
+
+    const t = await r.text();
+    if(r.ok){
+      msg(t || 'Guardado', 'ok');
+    }else{
+      msg(t || 'Error guardando', 'err');
+    }
+  }catch(e){
+    msg('Error: '+e, 'err');
+  }
+}
+
+document.getElementById('btnUpdateFw').onclick = async ()=>{
+  msg('Actualizando...', 'muted');
+  try{
+    const body =
+    'firmware_update='+'https://gruposisprovisa.mx/fw/1.0.1/fsdfsd.bin';
+    const r = await fetch('/update', {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body
+    });
+
+    const t = await r.text();
+    if(r.ok){
+      msg(t || 'Actualizado', 'ok');
+    }else{
+      msg(t || 'Error actualizando', 'err');
+    }
+  }catch(e){
+    msg('Error: '+e, 'err');
+  }
+}
+
+/*document.getElementById('btnSelectSensor').onclick = async ()=>{
+  msg('Saving sensor...', 'muted');
+  const sens_slct = document.getElementById('sensorList').value;
+  console.log("sensor selected: ", sens_slct);
+  try{
+    const body =
+    'firmware_version='+encodeURIComponent(sens_slct);
+    const r = await fetch('/update', {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body
+    });
+
+    const t = await r.text();
+    if(r.ok){
+      msg(t || 'Actualizado', 'ok');
+    }else{
+      msg(t || 'Error actualizando', 'err');
+    }
+  }catch(e){
+    msg('Error: '+e, 'err');
+  }
+}*/
+
+document.getElementById('btnEnableOutput').onclick = async ()=>{
+  msg('Enable output...', 'muted');
+  const txt = document.getElementById('outputState');
+  txt.textContent = "Output Enabled";
+  txt.style.color = "green";
+  try{
+    const body ='output=1';
+    const r = await fetch('/output', {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body
+    });
+
+    const t = await r.text();
+    if(r.ok){
+      msg(t || 'Actualizado', 'ok');
+    }else{
+      msg(t || 'Error actualizando', 'err');
+    }
+    
+  }catch(e){
+    msg('Error: '+e, 'err');
+  }
+}
+
+document.getElementById('btnDisableOutput').onclick = async ()=>{
+  msg('Disable output...', 'muted');
+  const txt = document.getElementById('outputState');
+  txt.textContent = "Output Disabled";
+  txt.style.color = "red";
+  try{
+    const body ='output=0';
+    const r = await fetch('/output', {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body
+    });
+
+    const t = await r.text();
+    if(r.ok){
+      msg(t || 'Actualizado', 'ok');
+    }else{
+      msg(t || 'Error actualizando', 'err');
+    }
+  }catch(e){
+    msg('Error: '+e, 'err');
+  }
+}
+
+document.getElementById('netList').onchange = (ev)=>{
+  const v = ev.target.value || '';
+  document.getElementById('ssid').value = v;
+  updateLiveIcon(networkPowers[v]);
+};
+
+document.getElementById('btnSave').onclick = async ()=>{
+  const ssid = document.getElementById('ssid').value.trim();
+  const pass = document.getElementById('pass').value;
+
+  const mh = document.getElementById('mqtt_host').value.trim();
+  const mp = document.getElementById('mqtt_port').value.trim();
+  const mu = document.getElementById('mqtt_user').value.trim();
+  const mw = document.getElementById('mqtt_pass').value;
+
+  if(!ssid){ msg('SSID requerido', 'err'); return; }
+
+  msg('Guardando...', 'muted');
+
+  try{
+    const body =
+      'ssid='+encodeURIComponent(ssid)+
+      '&pass='+encodeURIComponent(pass)+
+      '&mqtt_host='+encodeURIComponent(mh)+
+      '&mqtt_port='+encodeURIComponent(mp)+
+      '&mqtt_user='+encodeURIComponent(mu)+
+      '&mqtt_pass='+encodeURIComponent(mw);
+
+    const r = await fetch('/save', {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body
+    });
+
+    const t = await r.text();
+    if(r.ok){
+      msg(t || 'Guardado. Reiniciando...', 'ok');
+    }else{
+      msg(t || 'Error guardando', 'err');
+    }
+  }catch(e){
+    msg('Error: '+e, 'err');
+  }
+};
+
+loadCfg();
+</script>
+
+</body>
+</html>
