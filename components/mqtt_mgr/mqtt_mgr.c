@@ -33,12 +33,50 @@ static bool mqtt_mgr_prepare_topics(void)
            mqtt_topics_build_ack(s_topic_ack, sizeof(s_topic_ack));
 }
 
+static bool mqtt_mgr_publish_raw(const char *topic, const char *payload, int qos, int retain)
+{
+    if (s_client == NULL || topic == NULL || payload == NULL) {
+        return false;
+    }
+
+    int msg_id = esp_mqtt_client_publish(s_client, topic, payload, 0, qos, retain);
+    if (msg_id < 0) {
+        ESP_LOGW(TAG, "MQTT raw publish failed topic=%s", topic);
+        return false;
+    }
+
+    ESP_LOGI(TAG, "MQTT raw publish ok msg_id=%d topic=%s payload=%s", msg_id, topic, payload);
+    return true;
+}
+
+static void mqtt_mgr_publish_connected_ack(void)
+{
+    char payload[128];
+
+    int written = snprintf(
+        payload,
+        sizeof(payload),
+        "{\"ok\":true,\"msg\":\"connected\",\"code\":-1}"
+    );
+
+    if (written < 0 || (size_t)written >= sizeof(payload)) {
+        ESP_LOGW(TAG, "ACK payload buffer too small");
+        return;
+    }
+
+    mqtt_mgr_publish_raw(s_topic_ack, payload, 1, 0);
+}
+
 static void mqtt_mgr_handle_connected(void)
 {
     s_connected = true;
 
     int msg_id = esp_mqtt_client_subscribe(s_client, s_topic_cmd, 1);
     ESP_LOGI(TAG, "Subscribed to cmd topic, msg_id=%d topic=%s", msg_id, s_topic_cmd);
+
+    mqtt_mgr_publish_raw(s_topic_status, "online", 1, 1);
+    mqtt_mgr_publish_raw(s_topic_telemetry, "{\"boot\":1}", 1, 0);
+    mqtt_mgr_publish_connected_ack();
 
     app_post_system_event(APP_SYS_MQTT_CONNECTED, NULL, 0);
 }
@@ -56,13 +94,20 @@ static void mqtt_mgr_handle_data(const char *topic, const char *payload)
     }
 
     ESP_LOGI(TAG, "MQTT RX topic=%s payload=%s", topic, payload);
-
+    int command = 0;
     app_cmd_output_t cmd;
-    if (mqtt_parser_parse_output_command(topic, payload, &cmd)) {
-        app_post_command_event(APP_CMD_SET_OUTPUT, &cmd, sizeof(cmd));
+    if (mqtt_parser_parse_output_command(topic, payload, &cmd, &command)) {
+        switch (command) {
+        case OUTPUT_1:
+             app_post_command_event(APP_CMD_SET_OUTPUT, &cmd, sizeof(cmd));
+            break;
+        
+        case TRK:
+            app_post_command_event(APP_CMD_REQUEST_REPORT, NULL, 0);
+            break;
+        }
         return;
     }
-
     ESP_LOGW(TAG, "Unhandled MQTT command");
 }
 

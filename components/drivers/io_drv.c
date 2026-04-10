@@ -46,7 +46,7 @@ esp_err_t io_drv_init(void)
      * value=false  => pin en alto  => salida desactivada
      * value=true   => pin en bajo  => salida activada
      */
-    err = gpio_set_level(OUTPUT_1, 1);
+    err = gpio_set_level(OUTPUT_1, 0);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set initial output level: %s", esp_err_to_name(err));
         return err;
@@ -73,7 +73,7 @@ esp_err_t io_drv_set_output(uint8_t output_id, bool value)
 
     int physical_level = value ? 0 : 1;
 
-    esp_err_t err = gpio_set_level(OUTPUT_1, physical_level);
+    esp_err_t err = gpio_set_level(OUTPUT_1, !physical_level);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "gpio_set_level failed: %s", esp_err_to_name(err));
         return err;

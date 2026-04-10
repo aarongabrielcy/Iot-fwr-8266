@@ -32,7 +32,8 @@ typedef enum {
     APP_RPT_OUTPUT_STATUS,
     APP_RPT_INPUT_STATUS,
     APP_RPT_SENSOR_STATUS,
-    APP_RPT_ALERT
+    APP_RPT_ALERT,
+    APP_RPT_CT_ALERT
 } app_report_event_id_t;
 
 /* =========================

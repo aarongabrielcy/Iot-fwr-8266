@@ -14,6 +14,8 @@ bool telemetry_builder_build_output_status(char *buf, size_t len);
 bool telemetry_builder_build_input_status(char *buf, size_t len);
 bool telemetry_builder_build_sensor_status(char *buf, size_t len);
 bool telemetry_builder_build_alert(char *buf, size_t len);
+bool telemetry_builder_build_ct_alert(char *buf, size_t len);
+
 
 #ifdef __cplusplus
 }

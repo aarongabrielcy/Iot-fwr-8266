@@ -4,6 +4,7 @@
 #include "app_state.h"
 #include "app_events_ids.h"
 #include "io_sensor.h"
+#include "ct_sensor.h"
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -67,7 +68,6 @@ static bool telemetry_build_common(char *buf, size_t len, int event_id)
     char ip_addr[16] = {0};
     char mac_wifi[CFG_WIFI_BT_MAC] = {0};
 
-    /* placeholders actuales */
     char mac_bt[18] = {0};
     char latitude[20] = {0};
     char longitude[20] = {0};
@@ -91,6 +91,8 @@ static bool telemetry_build_common(char *buf, size_t len, int event_id)
     int net_mode = (int)app_state_get_mode();
     int rssi = 0;
     int out1 = telemetry_get_output_1();
+    unsigned ct_raw = (unsigned)ct_sensor_get_last_raw();
+    int ct_alarm = ct_sensor_is_alarm_active() ? 1 : 0;
 
     int written = snprintf(
         buf,
@@ -119,6 +121,12 @@ static bool telemetry_build_common(char *buf, size_t len, int event_id)
                 "\"outputs\":{"
                     "\"out1\":%d"
                 "}"
+            "},"
+            "\"sensors\":{"
+                "\"ct_snsr\":{"
+                    "\"raw\":%u,"
+                    "\"ct_state\":%d"
+                "}"
             "}"
         "}",
         event_id,
@@ -134,7 +142,9 @@ static bool telemetry_build_common(char *buf, size_t len, int event_id)
         mac_bt,
         latitude,
         longitude,
-        out1
+        out1,
+        ct_raw,
+        ct_alarm
     );
 
     if (written < 0) {
@@ -180,4 +190,9 @@ bool telemetry_builder_build_sensor_status(char *buf, size_t len)
 bool telemetry_builder_build_alert(char *buf, size_t len)
 {
     return telemetry_build_common(buf, len, APP_RPT_ALERT);
+}
+
+bool telemetry_builder_build_ct_alert(char *buf, size_t len)
+{
+    return telemetry_build_common(buf, len, APP_RPT_CT_ALERT);
 }

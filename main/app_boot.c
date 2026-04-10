@@ -8,6 +8,8 @@
 #include "scheduler.h"
 #include "serial_monitor.h"
 #include "app_runtime.h"
+#include "ct_sensor.h"
+
 
 #include "esp_log.h"
 #include "esp_err.h"
@@ -64,6 +66,16 @@ esp_err_t app_boot_start(void)
 
     if (!io_sensor_init()) {
         ESP_LOGE(TAG, "io_sensor_init failed");
+        return ESP_FAIL;
+    }
+    
+    if (!ct_sensor_init()) {
+        ESP_LOGE(TAG, "ct_sensor_init failed");
+        return ESP_FAIL;
+    }
+
+    if (!ct_sensor_start()) {
+        ESP_LOGE(TAG, "ct_sensor_start failed");
         return ESP_FAIL;
     }
 

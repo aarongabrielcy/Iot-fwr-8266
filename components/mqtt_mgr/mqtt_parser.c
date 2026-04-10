@@ -1,8 +1,10 @@
 #include "mqtt_parser.h"
 #include "mqtt_topics.h"
+#include "mqtt_mgr.h"
 #include "esp_log.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static const char *TAG = "MQTT_PARSER";
 
@@ -53,7 +55,8 @@ static bool payload_extract_bool(const char *payload, const char *key, bool *val
 
 bool mqtt_parser_parse_output_command(const char *topic,
                                       const char *payload,
-                                      app_cmd_output_t *out_cmd) {
+                                      app_cmd_output_t *out_cmd,
+                                      int *command) {
     if (topic == NULL || payload == NULL || out_cmd == NULL) {
         return false;
     }
@@ -79,9 +82,44 @@ bool mqtt_parser_parse_output_command(const char *topic,
      */
 
     unsigned output_id = 0;
-    bool value = false;
-
-    const char *out_id_pos = strstr(payload, "\"output_id\":");
+    //bool value = false;
+    int s_command;
+    char val[512];
+    int found = sscanf(payload, "{\"%d\":\"%[^\"]\"", &s_command, val);
+    if(found == 2){
+        switch (s_command){
+            case OUTPUT_1:
+                *command = s_command;
+                out_cmd->output_id = 1;
+                if(strcmp(val, "1") == 0){
+                    out_cmd->value = true;
+                }
+                else{
+                    out_cmd->value = false;
+                }
+                return true;
+                //post_system_event(OUTPUT, value);
+                break;
+            case OUTPUT_2:
+                /* code */
+                break;
+            case OTA:
+                //post_system_event(OTA_UPDATE, value);
+                break;
+            case TRK:
+                *command = s_command;
+                return true;
+                break;
+            default:
+                return false;
+                break;
+            }
+        
+    }
+    else{
+        return false;
+    }
+    /*const char *out_id_pos = strstr(payload, "\"output_id\":");
     if (!out_id_pos) {
         return false;
     }
@@ -95,7 +133,7 @@ bool mqtt_parser_parse_output_command(const char *topic,
     }
 
     out_cmd->output_id = (uint8_t)output_id;
-    out_cmd->value = value;
+    out_cmd->value = value;*/
 
     return true;
 }

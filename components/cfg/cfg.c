@@ -80,7 +80,7 @@ static void cfg_set_defaults(app_cfg_t *cfg)
     cfg->temperature_cfg.min_hum  = 20;
 
     cfg->sensor_selector = ULTRASONIC_SENSOR;
-    cfg->telemetry_interval_s = 30;
+    cfg->telemetry_interval_s = 300;
 
     snprintf(cfg->cfg_version, sizeof(cfg->cfg_version), "%s", CFG_BLOB_VERSION);
 

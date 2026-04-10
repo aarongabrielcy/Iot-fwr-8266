@@ -39,6 +39,9 @@ static bool telemetry_build_payload(int32_t report_event_id,
         case APP_RPT_ALERT:
             return telemetry_builder_build_alert(payload, payload_len);
 
+        case APP_RPT_CT_ALERT:
+            return telemetry_builder_build_ct_alert(payload, payload_len);
+
         default:
             ESP_LOGW(TAG, "Unsupported report event for telemetry: %ld", (long)report_event_id);
             return false;

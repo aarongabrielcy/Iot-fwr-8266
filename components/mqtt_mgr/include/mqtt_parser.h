@@ -10,7 +10,8 @@ extern "C" {
 
 bool mqtt_parser_parse_output_command(const char *topic,
                                       const char *payload,
-                                      app_cmd_output_t *out_cmd);
+                                      app_cmd_output_t *out_cmd,
+                                      int *command);
 
 #ifdef __cplusplus
 }
