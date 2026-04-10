@@ -20,7 +20,7 @@ static bool mqtt_topic_build(char *buf, size_t len, const char *suffix) {
     const char *device_id = cfg_get_device_id();
     if (device_id == NULL || device_id[0] == '\0') {
         ESP_LOGE(TAG, "device_id is empty");
-        buf[0] = '\0';
+        buf[0] = '\0'; 
         return false;
     }
 
