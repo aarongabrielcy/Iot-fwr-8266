@@ -22,10 +22,121 @@
 #define HTTPD_RESP_USE_STRLEN -1
 #endif
 
+#define SESSION_TIMEOUT_SECONDS 1800   // 30 min
+#define SESSION_COOKIE_NAME     "session_id"
+static char s_session_id[64] = {0};
+static time_t s_session_last_activity = 0;
+
 static const char *TAG = "WEB_CFG_HDL";
 
 /* cfg pointer ------------------------------------------------------------ */
 static app_cfg_t *s_cfg = NULL;
+
+static void session_clear(void)
+{
+    s_session_id[0] = '\0';
+    s_session_last_activity = 0;
+}
+
+static void session_create(void)
+{
+    uint32_t r1 = esp_random();
+    uint32_t r2 = esp_random();
+    time_t now = time(NULL);
+
+    snprintf(s_session_id, sizeof(s_session_id), "%08lx%08lx%08lx",
+             (unsigned long)now,
+             (unsigned long)r1,
+             (unsigned long)r2);
+
+    s_session_last_activity = now;
+}
+
+static bool cookie_extract_value(const char *cookie_header,
+                                 const char *name,
+                                 char *out,
+                                 size_t out_len)
+{
+    if (!cookie_header || !name || !out || out_len == 0) return false;
+
+    const char *p = cookie_header;
+    size_t name_len = strlen(name);
+
+    while (*p) {
+        while (*p == ' ') p++;
+
+        if (strncmp(p, name, name_len) == 0 && p[name_len] == '=') {
+            p += name_len + 1;
+            const char *end = strchr(p, ';');
+            size_t len = end ? (size_t)(end - p) : strlen(p);
+            if (len >= out_len) len = out_len - 1;
+            memcpy(out, p, len);
+            out[len] = '\0';
+            return true;
+        }
+
+        p = strchr(p, ';');
+        if (!p) break;
+        p++;
+    }
+
+    return false;
+}
+
+bool web_cfg_is_authenticated(httpd_req_t *req)
+{
+    if (!req) return false;
+    if (s_session_id[0] == '\0') return false;
+
+    time_t now = time(NULL);
+    if (now <= 0) {
+        // Si no hay tiempo válido, de todos modos usa la sesión en RAM,
+        // pero no permitas que dure para siempre si el tiempo luego aparece.
+        now = s_session_last_activity;
+    }
+
+    if (s_session_last_activity > 0 &&
+        (now - s_session_last_activity) > SESSION_TIMEOUT_SECONDS) {
+        session_clear();
+        return false;
+    }
+
+    char cookie_header[256] = {0};
+    if (httpd_req_get_hdr_value_str(req, "Cookie", cookie_header, sizeof(cookie_header)) != ESP_OK) {
+        return false;
+    }
+
+    char session_cookie[80] = {0};
+    if (!cookie_extract_value(cookie_header, SESSION_COOKIE_NAME, session_cookie, sizeof(session_cookie))) {
+        return false;
+    }
+
+    if (strcmp(session_cookie, s_session_id) != 0) {
+        return false;
+    }
+
+    s_session_last_activity = now;
+    return true;
+}
+
+esp_err_t web_cfg_redirect_login(httpd_req_t *req)
+{
+    httpd_resp_set_status(req, "302 Found");
+    httpd_resp_set_hdr(req, "Location", "/");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    return httpd_resp_send(req, NULL, 0);
+}
+
+static bool require_auth_json_or_401(httpd_req_t *req)
+{
+    if (web_cfg_is_authenticated(req)) return true;
+
+    httpd_resp_set_status(req, "401 Unauthorized");
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    httpd_resp_send(req, "Unauthorized", HTTPD_RESP_USE_STRLEN);
+    return false;
+}
 
 static void reboot_task(void *arg)
 {
@@ -372,6 +483,65 @@ static esp_err_t output_post_handler(httpd_req_t *req)
     return http_send_text(req, "OK");
 }
 
+static esp_err_t login_validate(httpd_req_t *req){
+    if (!s_cfg) {
+        httpd_resp_send_err(req, HTTPD_500, "cfg not set");
+        return ESP_OK;
+    }
+
+    if (s_cfg->login_user[0] == '\0' || s_cfg->login_pass[0] == '\0') {
+        httpd_resp_send_err(req, HTTPD_500, "login credentials not configured");
+        return ESP_OK;
+    }
+
+    char body[512];
+    int len = http_read_body(req, body, sizeof(body));
+    if (len < 0) {
+        httpd_resp_send_err(req, HTTPD_400, "bad body");
+        return ESP_OK;
+    }
+
+    char login_user[CFG_USER] = {0};
+    char login_pass[CFG_PASS] = {0};
+
+    form_get(body, "login_user", login_user, sizeof(login_user));
+    form_get(body, "login_pass", login_pass, sizeof(login_pass));
+
+    if (strcmp(login_user, s_cfg->login_user) == 0 &&
+        strcmp(login_pass, s_cfg->login_pass) == 0) {
+
+        session_create();
+
+        char cookie[160];
+        snprintf(cookie, sizeof(cookie),
+                 SESSION_COOKIE_NAME "=%s; Path=/; HttpOnly; SameSite=Lax",
+                 s_session_id);
+
+        httpd_resp_set_hdr(req, "Set-Cookie", cookie);
+        httpd_resp_set_type(req, "text/plain");
+        httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+        httpd_resp_send(req, "OK", HTTPD_RESP_USE_STRLEN);
+        return ESP_OK;
+    }
+
+    httpd_resp_set_status(req, "401 Unauthorized");
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    httpd_resp_send(req, "Invalid User or Password", HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
+static esp_err_t logout_post(httpd_req_t *req)
+{
+    session_clear();
+    httpd_resp_set_hdr(req, "Set-Cookie",
+                       SESSION_COOKIE_NAME "=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    httpd_resp_send(req, "OK", HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
 void web_cfg_handlers_register(httpd_handle_t server)
 {
     httpd_uri_t uris[] = {
@@ -381,6 +551,8 @@ void web_cfg_handlers_register(httpd_handle_t server)
         {.uri = "/update",    .method = HTTP_POST, .handler = update_firmware_post_handler,.user_ctx = NULL},
         {.uri = "/output",    .method = HTTP_POST, .handler = output_post_handler,         .user_ctx = NULL},
         {.uri = "/cfg",       .method = HTTP_GET,  .handler = cfg_get_handler,             .user_ctx = NULL},
+        {.uri = "/login",     .method = HTTP_POST, .handler = login_validate,              .user_ctx = NULL},
+        {.uri = "/logout",    .method = HTTP_POST, .handler = logout_post,                 .user_ctx = NULL}
     };
 
     for (size_t i = 0; i < sizeof(uris) / sizeof(uris[0]); i++) {

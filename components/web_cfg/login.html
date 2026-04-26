@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Device Login</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:18px;max-width:auto; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:90vh}
+    .muted{color:#666;font-size:13px}
+    .err{color:#a00}
+    .ok{color:#0a0}
+
+    .login-container {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .topbar{
+      background:#fff; 
+      padding:10px 0; border-bottom:1px solid #eee; margin-bottom:12px;
+      text-align: center;
+      width: 100%;
+    }
+    #msg{margin-top:8px; padding:8px 10px; border-radius:10px; background:#f7f7f7; text-align:center}
+
+    .card{border:1px solid #ddd; border-radius:14px; padding:20px; background:#fff}
+    .row{ margin:15px 0; width:100%; }
+    label{display:block;margin-bottom:6px;font-weight:600}
+    input,button{
+      width:100%;
+      max-width:100%;
+      display:block;
+      padding:12px;
+      font-size:16px;
+      border:1px solid #ccc;
+      border-radius: 8px;
+    }
+    button{
+      cursor:pointer;
+      background-color: #333;
+      color: white;
+      border: none;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+    button:hover{ background-color: #555; }
+    h3{margin:0 0 15px 0; text-align: center}
+    *{ box-sizing:border-box; }  
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <div class="topbar">
+      <div class="row">
+        <img src="/iot_logo.svg" alt="IoT" style="height:40px;width:auto">
+      </div>
+      <h2>DEVICE ACCESS</h2>
+      <div class="muted">Ingresa tus credenciales para administrar el dispositivo.</div>
+    </div>
+
+    <div class="card">
+      <h3>Login</h3>
+      
+      <div class="row">
+        <label>Usuario</label>
+        <input id="user" type="text" placeholder="Admin" autocomplete="username"/>
+      </div>
+
+      <div class="row">
+        <label>Password</label>
+        <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+
+      <div class="row">
+        <button id="btnLogin">Entrar</button>
+      </div>
+
+      <div id="msg" class="muted">Introduce credenciales.</div>
+    </div>
+  </div>
+
+<script>
+const msg = (t, cls='muted')=>{
+  const el=document.getElementById('msg');
+  el.className=cls; el.textContent=t;
+};
+
+document.getElementById('btnLogin').onclick = async () => {
+  const user = document.getElementById('user').value.trim();
+  const pass = document.getElementById('pass').value;
+
+  if(!user || !pass){
+    msg('Usuario y contraseña requeridos', 'err');
+    return;
+  }
+
+  msg('Autenticando...', 'muted');
+
+  try {
+    const body = 'login_user=' + encodeURIComponent(user) +
+                 '&login_pass=' + encodeURIComponent(pass);
+
+    const r = await fetch('/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body
+    });
+
+    const text = await r.text();
+
+    if (r.ok && text.trim() === 'OK') {
+      window.location.href = '/device';
+      return;
+    }
+
+    msg(text || 'Credenciales incorrectas', 'err');
+  } catch(e) {
+    msg('Error de conexión: ' + e, 'err');
+  }
+};
+
+// Permitir Login con la tecla Enter
+document.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') document.getElementById('btnLogin').click();
+});
+</script>
+
+</body>
+</html>

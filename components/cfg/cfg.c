@@ -65,13 +65,17 @@ static void cfg_set_defaults(app_cfg_t *cfg)
 
     /* DHCP */
     snprintf(cfg->ip_dhcp, sizeof(cfg->ip_dhcp), "0.0.0.0");
-
+ 
     /* Web login */
     snprintf(cfg->web_user, sizeof(cfg->web_user), "%s", cfg->device_id);
     snprintf(cfg->web_pass, sizeof(cfg->web_pass), "12345678");
 
     /* MAC */
     snprintf(cfg->wifi_mac, sizeof(cfg->wifi_mac), "FCB46773B338");
+
+    /* LOGIN WEB*/
+    snprintf(cfg->login_user, sizeof(cfg->login_user), "admin");
+    snprintf(cfg->login_pass, sizeof(cfg->login_pass), "admin");
 
     /* Sensores / límites */
     cfg->temperature_cfg.max_temp = 50;

@@ -21,6 +21,9 @@ extern "C" {
 
 #define CFG_WIFI_BT_MAC     18
 
+#define CFG_USER 10
+#define CFG_PASS 10
+
 #define CFG_BLOB_VERSION    "1.0.1"
 
 typedef enum {
@@ -58,6 +61,10 @@ typedef struct {
 
     /* MAC */
     char wifi_mac[CFG_WIFI_BT_MAC];
+
+    /* LOGIN WEB */
+    char login_user[CFG_USER];
+    char login_pass[CFG_PASS];
 
     /* Config extra */
     temperature_cfg_t temperature_cfg;
