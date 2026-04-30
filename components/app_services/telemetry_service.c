@@ -50,7 +50,7 @@ static bool telemetry_build_payload(int32_t report_event_id,
 
 bool telemetry_service_publish_report(int32_t report_event_id, void *event_data)
 {
-    char payload[512];
+    char payload[2 * 512];
 
     if (!app_state_get_wifi_connected()) {
         ESP_LOGW(TAG, "Skipping publish: WiFi disconnected");

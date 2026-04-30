@@ -5,6 +5,8 @@
 #include "esp_http_server.h"
 
 #include "web_cfg_handlers.h"
+#include "cfg.h"
+#include "app_state.h"
 
 #ifndef HTTPD_RESP_USE_STRLEN
 #define HTTPD_RESP_USE_STRLEN -1
@@ -17,6 +19,9 @@ static httpd_handle_t s_server = NULL;
 extern const uint8_t web_cfg_ui_html_start[] asm("_binary_web_cfg_ui_html_start");
 extern const uint8_t web_cfg_ui_html_end[]   asm("_binary_web_cfg_ui_html_end");
 
+extern const uint8_t login_html_start[]   asm("_binary_login_html_start");
+extern const uint8_t login_html_end[]   asm("_binary_login_html_end");
+
 static esp_err_t root_get(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "text/html");
@@ -24,6 +29,21 @@ static esp_err_t root_get(httpd_req_t *req)
 
     const size_t len = (size_t)(web_cfg_ui_html_end - web_cfg_ui_html_start);
     httpd_resp_send(req, (const char *)web_cfg_ui_html_start, len);
+    return ESP_OK;
+}
+
+static esp_err_t login_get(httpd_req_t *req)
+{
+    if (web_cfg_is_authenticated(req)) {
+        httpd_resp_set_status(req, "302 Found");
+        httpd_resp_set_hdr(req, "Location", "/device");
+        return httpd_resp_send(req, NULL, 0);
+    }
+
+    httpd_resp_set_type(req, "text/html");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    const size_t len = (size_t)(login_html_end - login_html_start);
+    httpd_resp_send(req, (const char*)login_html_start, len);
     return ESP_OK;
 }
 
@@ -55,7 +75,7 @@ bool web_cfg_start(app_cfg_t *cfg)
     }
 
     httpd_uri_t root = {
-        .uri = "/",
+        .uri = "/device",
         .method = HTTP_GET,
         .handler = root_get,
         .user_ctx = NULL
@@ -67,15 +87,24 @@ bool web_cfg_start(app_cfg_t *cfg)
         .handler = health_get,
         .user_ctx = NULL
     };
+    
+    httpd_uri_t login = {
+        .uri="/", 
+        .method=HTTP_GET,  
+        .handler=login_get, 
+        .user_ctx=NULL
+    };
 
     httpd_register_uri_handler(s_server, &root);
     httpd_register_uri_handler(s_server, &health);
+    httpd_register_uri_handler(s_server, &login);
 
     web_cfg_handlers_register(s_server);
 
     ESP_LOGI(TAG, "WebCfg started:");
     ESP_LOGI(TAG, "  GET  /         (UI)");
     ESP_LOGI(TAG, "  GET  /health   (OK)");
+    ESP_LOGI(TAG, "  GET  /login   (LOGIN)");
     ESP_LOGI(TAG, "  GET  /scan     (wifi scan)");
     ESP_LOGI(TAG, "  GET  /cfg      (show cfg)");
     ESP_LOGI(TAG, "  POST /save     (save wifi+mqtt)");

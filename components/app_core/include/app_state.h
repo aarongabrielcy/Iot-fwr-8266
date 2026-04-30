@@ -1,10 +1,19 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+typedef struct{
+    char device_id[16];
+    char fw_version[10];
+    char latitude[20];
+    char longitude[20];
+} GeneralState;
 
 typedef enum {
     APP_MODE_NONE = 0,
@@ -42,6 +51,15 @@ bool app_state_get_scheduler_started(void);
 /* IP address */
 void app_state_set_ip_addr(const char *ip_addr);
 const char *app_state_get_ip_addr(void);
+
+/* general */
+void app_state_set_device_id(const char *device_id);
+void app_state_set_fw_version(const char *fw_version);
+void app_state_set_latitude(const char *latitude);
+void app_state_set_longitude(const char *longitude);
+
+void app_state_get_latitude(char *latitude, size_t len);
+void app_state_get_longitude(char *longitude, size_t len);
 
 #ifdef __cplusplus
 }

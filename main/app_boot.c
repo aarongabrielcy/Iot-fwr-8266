@@ -42,10 +42,13 @@ esp_err_t app_boot_start(void)
         return ESP_FAIL;
     }
 
+
     cfg_ensure_device_id(&g_cfg);
     cfg_ensure_web_credentials(&g_cfg);
     cfg_ensure_telemetry_interval(&g_cfg);
-
+    cfg_ensure_login_credentials(&g_cfg);
+    cfg_ensure_coordinates(&g_cfg);
+    
     /*
      * Muy importante:
      * cfg_load() llena el cache interno, pero aquí ya mutamos g_cfg
