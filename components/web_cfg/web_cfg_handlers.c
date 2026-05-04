@@ -23,6 +23,11 @@
 #define HTTPD_RESP_USE_STRLEN -1
 #endif
 
+#define SESSION_TIMEOUT_SECONDS 1800   // 30 min
+#define SESSION_COOKIE_NAME     "session_id"
+static char s_session_id[64] = {0};
+static time_t s_session_last_activity = 0;
+
 static const char *TAG = "WEB_CFG_HDL";
 
 /* cfg pointer ------------------------------------------------------------ */
@@ -139,8 +144,6 @@ static bool require_auth_json_or_401(httpd_req_t *req)
     httpd_resp_send(req, "Unauthorized", HTTPD_RESP_USE_STRLEN);
     return false;
 }
-
-
 
 static void reboot_task(void *arg)
 {
@@ -596,6 +599,8 @@ void web_cfg_handlers_register(httpd_handle_t server)
         {.uri = "/logout",    .method = HTTP_POST, .handler = logout_post,                 .user_ctx = NULL},
         {.uri = "/location",  .method = HTTP_POST, .handler = save_location,               .user_ctx = NULL},
         {.uri = "/cfg",       .method = HTTP_GET,  .handler = cfg_get_handler,             .user_ctx = NULL},
+        {.uri = "/login",     .method = HTTP_POST, .handler = login_validate,              .user_ctx = NULL},
+        {.uri = "/logout",    .method = HTTP_POST, .handler = logout_post,                 .user_ctx = NULL}
     };
 
     for (size_t i = 0; i < sizeof(uris) / sizeof(uris[0]); i++) {

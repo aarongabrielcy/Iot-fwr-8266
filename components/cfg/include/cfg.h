@@ -28,6 +28,9 @@ extern "C" {
 #define CFG_PASS 10
 
 
+#define CFG_USER 10
+#define CFG_PASS 10
+
 #define CFG_BLOB_VERSION    "1.0.1"
 
 typedef enum {
