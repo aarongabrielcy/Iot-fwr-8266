@@ -91,6 +91,11 @@ static bool telemetry_build_common(char *buf, size_t len, int event_id)
     int net_mode = (int)app_state_get_mode();
     int rssi = 0;
     int out1 = telemetry_get_output_1();
+
+    app_state_get_latitude(latitude, sizeof(latitude));
+    app_state_get_longitude(longitude, sizeof(longitude));
+    
+
     unsigned ct_raw = (unsigned)ct_sensor_get_last_raw();
     int ct_alarm = ct_sensor_is_alarm_active() ? 1 : 0;
 
@@ -103,32 +108,41 @@ static bool telemetry_build_common(char *buf, size_t len, int event_id)
             "\"device_id\":\"%s\","
             "\"fw\":\"%s\","
             "\"uptime_s\":%lu,"
-            "\"net\":{"
-                "\"mode\":\"%d\","
-                "\"ssid\":\"%s\","
-                "\"ip\":\"%s\","
-                "\"rssi\":%d"
-            "},"
-            "\"hw\":{"
-                "\"mac_wifi\":\"%s\","
-                "\"mac_bt\":\"%s\""
-            "},"
-            "\"location\":{"
-                "\"latitude\":\"%s\","
-                "\"longitude\":\"%s\""
-            "},"
+            "\"net\":{\"mode\":\"%d\",\"ssid\":\"%s\",\"ip\":\"%s\",\"rssi\":%d},"
+            "\"hw\":{\"mac_wifi\":\"%s\",\"mac_bt\":\"%s\"},"
+            "\"location\":["
+                "\"%s\","
+                "\"%s\""
+            "],"
             "\"io\":{"
-                "\"outputs\":{"
-                    "\"out1\":%d"
-                "}"
-            "},"
+                "\"inputs\":{\"in1\":-1,\"in2\":-1},"
+                "\"outputs\":{\"out1\":%d,\"out2\":-1}"
+            "},"    
             "\"sensors\":{"
-                "\"ct_snsr\":{"
-                    "\"raw\":%u,"
-                    "\"ct_state\":%d"
+                "\"mb_485\":{"
+                    "\"ul_sensor\":{"
+                        "\"snsr_1\":-1,"
+                        "\"snsr_1_per\":-1,"
+                        "\"HardwareStatus\":-1,"
+                        "\"height\":-1,"
+                        "\"delta\":-1,"
+                        "\"max\":-1,"
+                        "\"min\":-1"
+                    "},"
+                    "\"variator\":{"
+                        "\"snsr_2\":-1,"
+                        "\"snsr_2_per\":-1,"
+                        "\"HardwareStatus\":-1"
+                    "}" 
+                "},"
+                "\"vbat\":-1,"
+                "\"pbat\":-1,"
+                "\"temp\":-1,"
+                "\"humm\":-1,"
+                "\"ct_sensor\":%d,"
+                "\"raw_voltage\":%d"
                 "}"
-            "}"
-        "}",
+            "}",
         event_id,
         dt,
         device_id,
@@ -143,8 +157,8 @@ static bool telemetry_build_common(char *buf, size_t len, int event_id)
         latitude,
         longitude,
         out1,
-        ct_raw,
-        ct_alarm
+        ct_alarm,
+        ct_raw
     );
 
     if (written < 0) {

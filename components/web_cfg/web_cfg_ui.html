@@ -34,6 +34,26 @@
     h3{margin:0 0 8px 0}
     .hint{font-size:12px;color:#666;margin-top:6px}
     *{ box-sizing:border-box; }  
+
+    .btn-logout{
+      background:#fff;
+      color:#b91c1c;
+      border:1px solid #ef4444;
+      font-weight:600;
+      min-width:96px;
+      height:36px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      white-space:nowrap;
+      flex-shrink:0;
+    }
+
+    .btn-logout:hover{
+      background:#fee2e2;
+      border-color:#dc2626;
+    }
+
   </style>
 </head>
 <body>
@@ -41,11 +61,12 @@
   <div class="topbar grid">
     <div class="title col">
       <div class="row">
-        <img src="/iot_logo.svg" alt="IoT" style="height:32px;width:auto">
+        
       </div>
       <div class="row">
         <h2>DEVICE SETUP</h2>
       </div>
+      <button id="btnLogout" class="btn btn-logout">Logout</button>
     </div>
     <div class="muted">Configura WiFi y MQTT. Guarda y reinicia. Si estás en STA puedes entrar por IP o por mDNS.</div>
     <div id="msg" class="muted">Listo.</div>
@@ -148,31 +169,17 @@
           <button id="btnUpdateFw">Update</button>
         </div>
       </div>
-    </div>
 
-    <!-- Select Sensor-->
-    <div class="col card">
-      <h3>Sensors</h3>
-      <div class="row">
-        <label>RS485 Sensor</label>
-        <select id="sensorRS485List" title="Redes cercanas">
-          <option value="">Select Sensor</option>
-        </select>
-      </div>
-      <div class="row">
-        <button id="btnSelectRS485Sensor">Select</button>
-      </div>
        <div class="row">
-          <label>I2C Sensor</label>
-       </div>
-       <select id="sensorI2CList" title="Redes cercanas">
-          <option value="">Select Sensor</option>
-        </select>
-        <div class="row">
-          <button id="btnSelectI2CSensor">Select</button>
+        <label>Location</label>
+        <div class="horizontal_control">
+          <input id="latitude" placeholder="latitude"/>
+          <input id="longitude" placeholder="longitude"/>
         </div>
-      </div>
-      
+        <div class="row">
+          <button id="btnSetLocation">Set Location</button>
+        </div>
+      </div>     
     </div>
 
     <!-- RELE -->
@@ -228,29 +235,6 @@ async function loadCfg(){
     msg('Error leyendo /cfg: '+e, 'err');
   }
 
-  try {
-      const sel = document.getElementById('sensorRS485List');
-      sel.innerHTML = "<option value=''> Disable </option>";
-      const fragment = document.createDocumentFragment();
-      const sensores_485 = Object.keys(j.sensors)
-      console.log(sensores_485);
-      /*if() {
-        // Ordenar por potencia antes de mostrar
-        j.networks.sort((a, b) => b.rssi - a.rssi);
-
-        j.networks.forEach(n => {
-          const o = document.createElement('option');
-          o.value = n.ssid;
-          o.textContent = `${n.ssid} (${n.rssi} dBm)`;
-          sel.appendChild(o);
-
-          // Guardamos el RSSI asociado a este SSID
-          networkPowers[n.ssid] = n.rssi;
-        });
-      }*/
-    } catch(e) {
-      msg('Error en obtener sensores: ' + e, 'err');
-    }
 }
 
 /*document.getElementById('btnScan').onclick = async ()=>{
@@ -467,6 +451,44 @@ document.getElementById('btnDisableOutput').onclick = async ()=>{
   }
 }
 
+
+function cleanCoordinateInput(value) { return value.trim().replace(',', '.'); }
+
+function isValidCoordinate(value, min, max) {
+  if (value === '') return false;
+  if (!/^-?\d+(\.\d+)?$/.test(value)) return false;
+  const num = Number(value);
+  return Number.isFinite(num) && num >= min && num <= max;
+}
+
+document.getElementById('btnSetLocation').onclick = async () => {
+  const latEl = document.getElementById('latitude');
+  const lonEl = document.getElementById('longitude');
+  const latitude = cleanCoordinateInput(latEl.value);
+  const longitude = cleanCoordinateInput(lonEl.value);
+  if (!isValidCoordinate(latitude, -1000, 1000)) {
+    msg('Latitude inválida.', 'err');
+    latEl.focus(); return;
+  }
+  if (!isValidCoordinate(longitude, -1000, 1000)) {
+    msg('Longitude inválida.', 'err');
+    lonEl.focus(); return;
+  }
+  msg('Guardando ubicación...', 'muted');
+  try {
+    const body = 'latitude=' + encodeURIComponent(latitude) + '&longitude=' + encodeURIComponent(longitude);
+    const r = await fetch('/location', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    });
+    const t = await r.text();
+    if (r.ok) msg(t || 'Ubicación guardada', 'ok');
+    else msg(t || 'Error guardando ubicación', 'err');
+  } catch (e) { msg('Error: ' + e, 'err'); }
+};
+
+
 document.getElementById('netList').onchange = (ev)=>{
   const v = ev.target.value || '';
   document.getElementById('ssid').value = v;
@@ -510,6 +532,12 @@ document.getElementById('btnSave').onclick = async ()=>{
   }catch(e){
     msg('Error: '+e, 'err');
   }
+};
+
+document.getElementById('btnLogout').onclick = async (e) => {
+  e.preventDefault();
+  try { await fetch('/logout', { method: 'POST', cache: 'no-store' }); } catch (e) {}
+  window.location.href = '/';
 };
 
 loadCfg();

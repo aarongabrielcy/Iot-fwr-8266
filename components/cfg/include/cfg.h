@@ -19,7 +19,14 @@ extern "C" {
 #define CFG_WEB_USER_MAX    32
 #define CFG_WEB_PASS_MAX    16
 
-#define CFG_WIFI_BT_MAC     18
+#define CFG_LATITUDE    20   
+#define CFG_LONGITUDE   20   
+
+#define CFG_WIFI_BT_MAC 18
+
+#define CFG_USER 10
+#define CFG_PASS 10
+
 
 #define CFG_USER 10
 #define CFG_PASS 10
@@ -62,9 +69,11 @@ typedef struct {
     /* MAC */
     char wifi_mac[CFG_WIFI_BT_MAC];
 
-    /* LOGIN WEB */
     char login_user[CFG_USER];
     char login_pass[CFG_PASS];
+
+    char longitude[CFG_LONGITUDE];
+    char latitude[CFG_LATITUDE];
 
     /* Config extra */
     temperature_cfg_t temperature_cfg;
@@ -85,6 +94,8 @@ bool cfg_save(const app_cfg_t *cfg);
 void cfg_ensure_device_id(app_cfg_t *cfg);
 void cfg_ensure_web_credentials(app_cfg_t *cfg);
 void cfg_ensure_telemetry_interval(app_cfg_t *cfg);
+void cfg_ensure_login_credentials(app_cfg_t *cfg);
+void cfg_ensure_coordinates(app_cfg_t *cfg);
 
 bool cfg_has_wifi_sta(const app_cfg_t *cfg);
 bool cfg_has_mqtt(const app_cfg_t *cfg);

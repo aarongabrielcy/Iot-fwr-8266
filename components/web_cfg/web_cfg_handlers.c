@@ -15,7 +15,8 @@
 #include "cfg.h"
 #include "app_events.h"
 #include "app_events_ids.h"
-#include "app_event_data.h"
+#include "app_event_data.h"`
+#include "app_state.h"
 #include "scheduler.h"
 
 #ifndef HTTPD_RESP_USE_STRLEN
@@ -31,6 +32,12 @@ static const char *TAG = "WEB_CFG_HDL";
 
 /* cfg pointer ------------------------------------------------------------ */
 static app_cfg_t *s_cfg = NULL;
+
+#define SESSION_TIMEOUT_SECONDS 1800   // 30 min
+#define SESSION_COOKIE_NAME     "session_id"
+
+static char s_session_id[64] = {0};
+static time_t s_session_last_activity = 0;
 
 static void session_clear(void)
 {
@@ -485,19 +492,19 @@ static esp_err_t output_post_handler(httpd_req_t *req)
 
 static esp_err_t login_validate(httpd_req_t *req){
     if (!s_cfg) {
-        httpd_resp_send_err(req, HTTPD_500, "cfg not set");
+        http_send_text(req, "cfg not set");
         return ESP_OK;
     }
 
     if (s_cfg->login_user[0] == '\0' || s_cfg->login_pass[0] == '\0') {
-        httpd_resp_send_err(req, HTTPD_500, "login credentials not configured");
+        http_send_text(req, "login credentials not configured");
         return ESP_OK;
     }
 
     char body[512];
     int len = http_read_body(req, body, sizeof(body));
     if (len < 0) {
-        httpd_resp_send_err(req, HTTPD_400, "bad body");
+        http_send_text(req, "bad body");
         return ESP_OK;
     }
 
@@ -542,6 +549,44 @@ static esp_err_t logout_post(httpd_req_t *req)
     return ESP_OK;
 }
 
+static esp_err_t save_location(httpd_req_t *req){
+    if (!require_auth_json_or_401(req)) {
+        return ESP_OK;
+    }
+    if (!s_cfg) {
+        http_send_text(req, "cfg not set");
+        return ESP_OK;
+    }
+
+    char body[512];
+    int len = http_read_body(req, body, sizeof(body));
+    if (len < 0) {
+        http_send_text(req, "bad body");
+        return ESP_OK;
+    }
+    char latitude[20] = {0};
+    char longitude[20] = {0};
+    form_get(body, "latitude", latitude, sizeof(latitude));
+    form_get(body, "longitude",longitude, sizeof(longitude));
+
+    strlcpy(s_cfg->latitude, latitude, sizeof(s_cfg->latitude));
+    strlcpy(s_cfg->longitude, longitude, sizeof(s_cfg->longitude));
+    
+    
+    app_state_set_latitude(s_cfg->latitude);
+    app_state_set_longitude(s_cfg->longitude);
+
+    
+
+    if (!cfg_save(s_cfg)) {
+        http_send_text(req, "No se pudo guardar en NVS");
+        return ESP_OK;
+    }
+    httpd_resp_send(req, "OK", HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
+
 void web_cfg_handlers_register(httpd_handle_t server)
 {
     httpd_uri_t uris[] = {
@@ -550,6 +595,9 @@ void web_cfg_handlers_register(httpd_handle_t server)
         {.uri = "/set_timer", .method = HTTP_POST, .handler = set_timer_post_handler,      .user_ctx = NULL},
         {.uri = "/update",    .method = HTTP_POST, .handler = update_firmware_post_handler,.user_ctx = NULL},
         {.uri = "/output",    .method = HTTP_POST, .handler = output_post_handler,         .user_ctx = NULL},
+        {.uri = "/login",     .method = HTTP_POST, .handler = login_validate,              .user_ctx = NULL},
+        {.uri = "/logout",    .method = HTTP_POST, .handler = logout_post,                 .user_ctx = NULL},
+        {.uri = "/location",  .method = HTTP_POST, .handler = save_location,               .user_ctx = NULL},
         {.uri = "/cfg",       .method = HTTP_GET,  .handler = cfg_get_handler,             .user_ctx = NULL},
         {.uri = "/login",     .method = HTTP_POST, .handler = login_validate,              .user_ctx = NULL},
         {.uri = "/logout",    .method = HTTP_POST, .handler = logout_post,                 .user_ctx = NULL}

@@ -1,6 +1,7 @@
 #include "app_state.h"
 #include "esp_log.h"
 #include <string.h>
+#include <stddef.h>
 
 static const char *TAG = "APP_STATE";
 
@@ -12,6 +13,7 @@ typedef struct {
     bool scheduler_started;
     app_mode_t mode;
     char ip_addr[16];
+    GeneralState general;
 } app_state_data_t;
 
 static app_state_data_t s_app_state = {
@@ -23,6 +25,20 @@ static app_state_data_t s_app_state = {
     .mode = APP_MODE_NONE,
     .ip_addr = {0}
 };
+
+
+static void safe_copy_str(char *dst, size_t dst_size, const char *src)
+{
+    if (dst == NULL || dst_size == 0) {
+        return;
+    }
+    if (src == NULL) {
+        dst[0] = '\0';
+        return;
+    }
+    strncpy(dst, src, dst_size - 1);
+    dst[dst_size - 1] = '\0';
+}
 
 void app_state_init(void) {
     s_app_state.wifi_connected = false;
@@ -95,4 +111,29 @@ void app_state_set_ip_addr(const char *ip_addr) {
 
 const char *app_state_get_ip_addr(void) {
     return s_app_state.ip_addr;
+}
+
+/* general */
+void app_state_set_device_id(const char *device_id){
+    safe_copy_str(s_app_state.general.device_id, sizeof(s_app_state.general.device_id), device_id);
+}
+
+void app_state_set_fw_version(const char *fw_version){
+    safe_copy_str(s_app_state.general.fw_version, sizeof(s_app_state.general.fw_version), fw_version);
+}
+
+void app_state_set_latitude(const char *latitude){
+    safe_copy_str(s_app_state.general.latitude, sizeof(s_app_state.general.latitude), latitude);
+}
+
+void app_state_set_longitude(const char *longitude){
+    safe_copy_str(s_app_state.general.longitude, sizeof(s_app_state.general.longitude), longitude);
+}
+
+void app_state_get_latitude(char *latitude, size_t len){
+    safe_copy_str(latitude, len, s_app_state.general.latitude);
+}
+
+void app_state_get_longitude(char *longitude, size_t len){
+    safe_copy_str(longitude, len, s_app_state.general.longitude);
 }

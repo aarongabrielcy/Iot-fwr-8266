@@ -197,7 +197,20 @@ bool mqtt_mgr_init(void)
         .port = port,
         .username = user,
         .password = pass,
-        .event_handle = mqtt_event_handler_legacy
+        .event_handle = mqtt_event_handler_legacy,
+
+        .keepalive = 60,
+        .reconnect_timeout_ms = 5000,
+
+        .disable_auto_reconnect = false,
+        
+        .lwt_topic = s_topic_status,
+        .lwt_msg = "offline",
+        .lwt_msg_len = strlen("offline"),
+        .lwt_qos = 1,
+        .lwt_retain = 1,
+
+        .buffer_size = 1024,
     };
 
     s_client = esp_mqtt_client_init(&mqtt_cfg);

@@ -1,5 +1,7 @@
 #include "cfg.h"
 
+#include "app_state.h"
+
 #include <string.h>
 #include <stdio.h>
 
@@ -110,7 +112,7 @@ bool cfg_load(app_cfg_t *out)
 
     size_t required = 0;
     err = nvs_get_blob(nvs, NVS_KEY, NULL, &required);
-
+//TODO
     if (err != ESP_OK || required != sizeof(app_cfg_t)) {
         ESP_LOGW(TAG,
                  "No cfg blob or size mismatch (err=%s size=%u expected=%u). Writing defaults.",
@@ -219,6 +221,32 @@ void cfg_ensure_telemetry_interval(app_cfg_t *cfg)
     }
 }
 
+void cfg_ensure_coordinates(app_cfg_t *cfg)
+{
+    if (!cfg) return;
+
+    if (cfg->latitude[0] == '\0') {
+        strlcpy(cfg->latitude, "0.000000", sizeof(cfg->latitude));
+    }
+
+    if (cfg->longitude[0] == '\0') {
+        strlcpy(cfg->longitude, "0.000000", sizeof(cfg->longitude));
+    }
+
+    app_state_set_latitude(cfg->latitude);
+    app_state_set_longitude(cfg->longitude);
+}
+
+void cfg_ensure_login_credentials(app_cfg_t *cfg){
+    if (!cfg) return;
+    if (strcmp(cfg->login_pass, "admin") != 0 && strcmp(cfg->login_user, "admin") != 0) {
+        strncpy(cfg->login_user, "admin", sizeof(cfg->login_user) - 1);
+        strncpy(cfg->login_pass, "admin", sizeof(cfg->login_pass) - 1);
+        cfg->login_user[sizeof(cfg->login_user) - 1] = '\0';
+        cfg->login_pass[sizeof(cfg->login_pass) - 1] = '\0';
+    }
+}
+
 bool cfg_has_wifi_sta(const app_cfg_t *cfg)
 {
     return (cfg && cfg->wifi_ssid[0] != '\0');
@@ -283,6 +311,9 @@ void cfg_print_boot(const app_cfg_t *cfg, bool show_password)
 
     ESP_LOGI(TAG, "web_user: %s", cfg->web_user[0] ? cfg->web_user : "(empty)");
     ESP_LOGI(TAG, "web_pass: %s", cfg->web_pass[0] ? cfg->web_pass : "(empty)");
+
+    ESP_LOGI(TAG, "latitude: %s", cfg->latitude[0] ? cfg->latitude : "(empty)");
+    ESP_LOGI(TAG, "longitude: %s", cfg->longitude[0] ? cfg->longitude : "(empty)");
 
     ESP_LOGI(TAG, "sensor_selected: %d", cfg->sensor_selector);
     ESP_LOGI(TAG, "temp_range: %d - %d",
