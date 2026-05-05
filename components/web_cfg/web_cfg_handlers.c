@@ -15,7 +15,7 @@
 #include "cfg.h"
 #include "app_events.h"
 #include "app_events_ids.h"
-#include "app_event_data.h"`
+#include "app_event_data.h"
 #include "app_state.h"
 #include "scheduler.h"
 

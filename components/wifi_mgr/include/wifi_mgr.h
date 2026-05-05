@@ -15,6 +15,7 @@ void wifi_mgr_set_on_got_ip(wifi_mgr_got_ip_cb_t cb);
 
 bool wifi_mgr_start_sta(const char *ssid, const char *pass);
 bool wifi_mgr_start_ap(const char *ap_ssid, const char *ap_pass);
+bool wifi_mgr_try_sta_reconnect(const char *ssid, const char *pass);
 
 /**
  * Inicia modo AP+STA:

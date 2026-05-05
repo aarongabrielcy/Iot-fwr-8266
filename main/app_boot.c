@@ -65,7 +65,7 @@ esp_err_t app_boot_start(void)
      * A partir de aquí ya se pueden inicializar procesos.
      */
     app_core_init();
-    app_handlers_init();
+    app_handlers_init(&g_cfg);
 
     if (!io_sensor_init()) {
         ESP_LOGE(TAG, "io_sensor_init failed");
