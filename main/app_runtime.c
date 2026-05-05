@@ -6,6 +6,8 @@
 #include "web_cfg.h"
 #include "app_state.h"
 #include "scheduler.h"
+#include "app_events.h"
+#include "app_events_ids.h"
 
 #include "esp_log.h"
 #include "string.h"
@@ -92,7 +94,7 @@ static void on_wifi_failed(void)
              "AP Config ready -> connect to SSID '%s' and open http://192.168.4.1/",
              ap_ssid);
 
-    post_system_event(WIFI_RECONNECTION_CFG);
+    app_post_system_event(WIFI_RECONNECTION_CFG, NULL, 0);
     app_state_set_config_mode(true);
     app_state_set_mode(APP_MODE_CONFIG);
 }
@@ -115,7 +117,7 @@ static void on_wifi_got_ip(const char *ip_str)
 
     app_state_set_ip_addr(ip_str);
     app_state_set_wifi_connected(true);
-    post_system_event(WIFI_RECONNECTION_STOP);
+    app_post_system_event(WIFI_RECONNECTION_STOP, NULL, 0);
 }
 
 static void start_web(void)
