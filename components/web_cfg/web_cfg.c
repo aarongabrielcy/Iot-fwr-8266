@@ -8,6 +8,10 @@
 #include "cfg.h"
 #include "app_state.h"
 
+#ifndef HTTPD_RESP_USE_STRLEN
+#define HTTPD_RESP_USE_STRLEN -1
+#endif
+
 static const char *TAG = "WEB_CFG";
 static httpd_handle_t s_server = NULL;
 
@@ -28,21 +32,6 @@ static esp_err_t root_get(httpd_req_t *req)
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
     const size_t len = (size_t)(web_cfg_ui_html_end - web_cfg_ui_html_start);
     httpd_resp_send(req, (const char*)web_cfg_ui_html_start, len);
-    return ESP_OK;
-}
-
-static esp_err_t login_get(httpd_req_t *req)
-{
-    if (web_cfg_is_authenticated(req)) {
-        httpd_resp_set_status(req, "302 Found");
-        httpd_resp_set_hdr(req, "Location", "/device");
-        return httpd_resp_send(req, NULL, 0);
-    }
-
-    httpd_resp_set_type(req, "text/html");
-    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
-    const size_t len = (size_t)(login_html_end - login_html_start);
-    httpd_resp_send(req, (const char*)login_html_start, len);
     return ESP_OK;
 }
 

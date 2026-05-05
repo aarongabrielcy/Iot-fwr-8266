@@ -23,10 +23,6 @@
 #define HTTPD_RESP_USE_STRLEN -1
 #endif
 
-#define SESSION_TIMEOUT_SECONDS 1800   // 30 min
-#define SESSION_COOKIE_NAME     "session_id"
-static char s_session_id[64] = {0};
-static time_t s_session_last_activity = 0;
 
 static const char *TAG = "WEB_CFG_HDL";
 
