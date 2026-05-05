@@ -92,6 +92,7 @@ static void on_wifi_failed(void)
              "AP Config ready -> connect to SSID '%s' and open http://192.168.4.1/",
              ap_ssid);
 
+    post_system_event(WIFI_RECONNECTION_CFG);
     app_state_set_config_mode(true);
     app_state_set_mode(APP_MODE_CONFIG);
 }
@@ -113,6 +114,8 @@ static void on_wifi_got_ip(const char *ip_str)
     ESP_LOGI(TAG, "Web UI (STA) -> http://%s/", ip_str);
 
     app_state_set_ip_addr(ip_str);
+    app_state_set_wifi_connected(true);
+    post_system_event(WIFI_RECONNECTION_STOP);
 }
 
 static void start_web(void)

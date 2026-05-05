@@ -122,6 +122,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t base, int32_t id, voi
             ESP_LOGW(TAG, "Retrying STA connection %d/%d", s_retry, s_max_retry);
             esp_wifi_connect();
         } else {
+            //TODO: AGREGAR AQUI TIMER PARA VOLVER A INTENTAR CONECTAR DESPUES DE 10 MIN
             if (s_wifi_ev) {
                 xEventGroupSetBits(s_wifi_ev, WIFI_FAIL_BIT);
             }
@@ -246,6 +247,64 @@ bool wifi_mgr_start_apsta(const char *ap_ssid, const char *ap_pass) {
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG, "Starting APSTA: AP=%s", ap_ssid);
+    return true;
+}
+
+bool wifi_mgr_try_sta_reconnect(const char *ssid, const char *pass) {
+    if (!ssid || ssid[0] == '\0') {
+        ESP_LOGW(TAG, "STA reconnect skipped: empty SSID");
+        return false;
+    }
+
+    wifi_mgr_init_once();
+
+    wifi_mode_t mode = s_ap_active  ? WIFI_MODE_APSTA : WIFI_MODE_STA;
+
+    esp_err_t err = esp_wifi_set_mode(mode);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "esp_wifi_set_mode failed: %s", esp_err_to_name(err));
+        return false;
+    }
+
+    wifi_config_t cfg = {0};
+
+    strncpy((char *)cfg.sta.ssid, ssid, sizeof(cfg.sta.ssid));
+    strncpy((char *)cfg.sta.password, pass ? pass : "", sizeof(cfg.sta.password));
+
+    err = esp_wifi_set_config(ESP_IF_WIFI_STA, &cfg);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "esp_wifi_set_config failed: %s", esp_err_to_name(err));
+        return false;
+    }
+
+    s_retry = 0;
+    s_sta_autoconnect = true;
+
+    err = esp_wifi_connect();
+
+    if (err == ESP_ERR_WIFI_NOT_STARTED) {
+        ESP_LOGW(TAG, "WiFi not started, starting WiFi before reconnect");
+
+        err = esp_wifi_start();
+        if (err != ESP_OK && err != ESP_ERR_WIFI_CONN) {
+            ESP_LOGW(TAG, "esp_wifi_start failed: %s", esp_err_to_name(err));
+            return false;
+        }
+
+        err = esp_wifi_connect();
+    }
+
+    if (err == ESP_ERR_WIFI_CONN) {
+        ESP_LOGW(TAG, "STA reconnect already in progress");
+        return true;
+    }
+
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "esp_wifi_connect failed: %s", esp_err_to_name(err));
+        return false;
+    }
+
+    ESP_LOGI(TAG, "STA reconnect attempt started: ssid=%s", ssid);
     return true;
 }
 

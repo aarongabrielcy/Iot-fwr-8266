@@ -13,11 +13,18 @@ static const char *TAG = "SCHEDULER";
 static esp_timer_handle_t s_tracking_timer = NULL;
 static bool s_scheduler_initialized = false;
 static bool s_scheduler_started = false;
+static esp_timer_handle_t reconnection_timer = NULL;
+static uint64_t reconnection_interval = RECONNECTION_TIME * 1000000;
 
 static void tracking_timer_cb(void *arg)
 {
     (void)arg;
     app_post_report_event(APP_RPT_TRACKING, NULL, 0);
+}
+
+static void reconnection_timer_cb(void *arg)
+{
+    app_post_system_event(WIFI_RECONNECTION_TRY, NULL, 0);
 }
 
 static bool scheduler_create_tracking_timer(void)
@@ -41,6 +48,47 @@ static bool scheduler_create_tracking_timer(void)
     }
 
     return true;
+}
+
+void start_reconnection_timer(void)
+{
+    if (reconnection_timer != NULL) {
+        ESP_LOGW(TAG, "reconnection_timer ya está en ejecución");
+        return;
+    }
+
+    const esp_timer_create_args_t timer_args = {
+        .callback = &reconnection_timer_cb,
+        .arg = NULL,
+        .dispatch_method = ESP_TIMER_TASK,
+        .name = "reconnection_tmr"
+    };
+
+    esp_err_t err = esp_timer_create(&timer_args, &reconnection_timer);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to create reconnection timer: %s", esp_err_to_name(err));
+        reconnection_timer = NULL;
+        return;
+    }
+
+    err = esp_timer_start_periodic(reconnection_timer, reconnection_interval);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start reconnection timer: %s", esp_err_to_name(err));
+        esp_timer_delete(reconnection_timer);
+        reconnection_timer = NULL;
+    }
+}
+
+void stop_reconnection_timer(void)
+{
+    if (reconnection_timer == NULL) {
+        ESP_LOGW(TAG, "reconnection_timer no está en ejecución");
+        return;
+    }
+
+    esp_timer_stop(reconnection_timer);
+    esp_timer_delete(reconnection_timer);
+    reconnection_timer = NULL;
 }
 
 bool scheduler_init(void)
