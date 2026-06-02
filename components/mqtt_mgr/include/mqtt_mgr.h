@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include "cfg.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,7 +16,7 @@ typedef enum{
 };
 
 bool mqtt_mgr_init(void);
-bool mqtt_mgr_start(void);
+bool mqtt_mgr_start(app_cfg_t *cfg);
 bool mqtt_mgr_stop(void);
 
 bool mqtt_mgr_is_connected(void);
