@@ -30,7 +30,7 @@ typedef enum {
  * REPORT EVENTS
  * ========================= */
 typedef enum {
-    APP_RPT_TRACKING = 1,
+    APP_RPT_TRACKING = 0,
     APP_RPT_BOOT,
     APP_RPT_OUTPUT_STATUS,
     APP_RPT_INPUT_STATUS,

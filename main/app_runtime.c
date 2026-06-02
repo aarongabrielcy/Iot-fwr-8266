@@ -68,7 +68,7 @@ static void on_wifi_connected(void)
     if (g_cfg.mqtt_host[0] == '\0' || g_cfg.mqtt_port <= 0) {
         ESP_LOGW(TAG, "MQTT not configured yet (host/port empty). Skipping mqtt start.");
     } else {
-        if (!mqtt_mgr_start()) {
+        if (!mqtt_mgr_start(&g_cfg)) {
             ESP_LOGW(TAG, "mqtt_mgr_start failed");
         }
     }
